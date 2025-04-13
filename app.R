@@ -15,6 +15,17 @@ toLatex <- function(expr) {
   return(expr)
 }
 
+
+
+# Funciones de envoltura
+wrap_longitude <- function(lon) {
+  ((lon + 180) %% 360) - 180
+}
+
+wrap_latitude <- function(lat) {
+  ((lat + 90) %% 180) - 90
+}
+
 # Covariance kernel construction
 cov_f_log <- function(f, u, s, t) {
   return(2 * f(u) * (-(t - u) * log(t - u) - (s - u) * log(s - u) + (t + s - 2 * u) * log(t + s - 2 * u)))
@@ -129,15 +140,19 @@ server <- function(input, output, session) {
     lon <- mvrnorm(1, mu1, K1)
     lat <- mvrnorm(1, mu2, K2)
 
-    df <- data.frame(lon = lon, lat = lat)
+    # Escala geográfica corregida
+    df <- data.frame(
+      lon = wrap_longitude(lon),
+      lat = wrap_latitude(lat)
+    )
 
     output$mapPlot <- renderLeaflet({
       leaflet(df) %>%
         addTiles() %>%
         addPolylines(~lon, ~lat, color = "#2c3e50", weight = 3) %>%
         addCircleMarkers(~lon, ~lat, radius = 3, color = "#2c3e50", fillOpacity = 0.9) %>%
-        addMarkers(lng = lon[1], lat = lat[1], label = "Start", labelOptions = labelOptions(noHide = TRUE)) %>%
-        addMarkers(lng = lon[n], lat = lat[n], label = "End", labelOptions = labelOptions(noHide = TRUE))
+        addMarkers(lng = df$lon[1], lat = df$lat[1], label = "Start", labelOptions = labelOptions(noHide = TRUE)) %>%
+        addMarkers(lng = df$lon[n], lat = df$lat[n], label = "End", labelOptions = labelOptions(noHide = TRUE))
     })
 
     output$flon_flat_plot <- renderPlot({
